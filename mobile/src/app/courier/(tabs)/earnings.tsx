@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { fcfa } from '@/lib/format';
 import { useApi } from '@/lib/useApi';
 import { colors, radius } from '@/theme';
@@ -15,7 +15,8 @@ const PERIODS = [{ key: 'day', label: 'Jour' }, { key: 'week', label: 'Semaine' 
 
 /** Mes gains (maquette livreur 4). */
 export default function EarningsScreen() {
-  const [period, setPeriod] = useState<'day' | 'week' | 'month'>('day');
+  const params = useLocalSearchParams<{ period?: 'day' | 'week' | 'month' }>();
+  const [period, setPeriod] = useState<'day' | 'week' | 'month'>(params.period ?? 'day');
   const { data, reload } = useApi<{ data: Earnings }>(`/courier/earnings?period=${period}`);
   useFocusEffect(useCallback(() => { reload(); }, [reload]));
   const e = data?.data;

@@ -19,3 +19,5 @@ export const DELIVERY_STATUS: Record<string, string> = {
   delivered: 'Livrée',
   cancelled: 'Annulée',
 };
+
+export const PARCEL_TYPE: Record<string, string> = { document: 'Documents', food: 'Nourriture', clothes: 'Vêtements', other: 'Autre' };
