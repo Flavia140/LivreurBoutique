@@ -78,7 +78,7 @@ class AuthTest extends TestCase
         $zone = Zone::create(['name' => 'Akpakpa', 'city' => 'Cotonou']);
 
         $res = $this->postJson('/api/v1/auth/register/courier', $this->base('+2290197000003') + [
-            'zone_id' => $zone->id, 'university' => 'UAC', 'vehicle_type' => 'moto', 'plate_number' => 'AB1234RB',
+            'zone_id' => $zone->id, 'university' => 'UAC', 'student_number' => 'UAC-21-INFO-1256', 'study_level' => 'Licence 3', 'vehicle_type' => 'moto', 'plate_number' => 'AB1234RB',
         ])->assertCreated()->assertJsonPath('user.courier.validation_status', 'pending');
         $this->assertCount(7, $res->json('user.courier.missing_documents'));
 

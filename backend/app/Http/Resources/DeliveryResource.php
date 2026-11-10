@@ -35,6 +35,12 @@ class DeliveryResource extends JsonResource
             ] : null,
             'client' => $this->when(! $isClient, fn () => ['first_name' => $this->client->first_name, 'phone' => $this->client->phone]),
             'rated' => $this->rating()->exists(),
+            'order_id' => $this->order_id,
+            'goods_amount' => $this->goods_amount,
+            'courier_position' => $this->when(
+                in_array($this->status, ['accepted', 'in_progress'], true) && $this->courier_lat !== null,
+                fn () => ['lat' => $this->courier_lat, 'lng' => $this->courier_lng, 'at' => $this->location_at],
+            ),
             'paid_at' => $this->paid_at,
             'accepted_at' => $this->accepted_at,
             'picked_up_at' => $this->picked_up_at,

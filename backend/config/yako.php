@@ -29,6 +29,13 @@ return [
         'mode' => env('FEEXPAY_MODE', 'SANDBOX'),
     ],
 
+    // Abonnements commerçants (FCFA)
+    'plans' => [
+        'monthly' => ['label' => 'Mensuel', 'amount' => 9900, 'months' => 1],
+        'quarterly' => ['label' => 'Trimestriel', 'amount' => 24900, 'months' => 3],
+        'annual' => ['label' => 'Annuel', 'amount' => 89900, 'months' => 12],
+    ],
+
     // Suspension automatique : note moyenne < 3 sur les 10 dernières livraisons
     'auto_suspend' => ['window' => 10, 'min_average' => 3.0],
 ];

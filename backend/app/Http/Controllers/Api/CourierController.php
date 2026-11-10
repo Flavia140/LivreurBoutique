@@ -88,6 +88,62 @@ class CourierController extends Controller
         return response()->json(['data' => $mission ? new DeliveryResource($mission) : null]);
     }
 
+    public function dashboard(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $profile = $user->courierProfile;
+        $today = Delivery::where('courier_id', $user->id)->where('status', Delivery::DELIVERED)->where('delivered_at', '>=', now()->startOfDay());
+        $current = Delivery::with('pickupZone', 'dropoffZone', 'client')->where('courier_id', $user->id)
+            ->whereIn('status', [Delivery::ACCEPTED, Delivery::IN_PROGRESS])->first();
+
+        return response()->json(['data' => [
+            'online' => $profile->available,
+            'verified' => $profile->isVerified(),
+            'today_deliveries' => (clone $today)->count(),
+            'today_earnings' => (int) (clone $today)->sum('price'),
+            'rating_avg' => $profile->rating_avg,
+            'rating_count' => $profile->rating_count,
+            'current' => $current ? new DeliveryResource($current) : null,
+        ]]);
+    }
+
+    /** Gains : le livreur touche le prix de la course ; YAKO garde la commission. Les frais d'annulation lui reviennent. */
+    public function earnings(Request $request): JsonResponse
+    {
+        $period = $request->query('period', 'day');
+        $from = match ($period) {
+            'week' => now()->startOfWeek(), 'month' => now()->startOfMonth(), default => now()->startOfDay()
+        };
+        $id = $request->user()->id;
+
+        $delivered = Delivery::where('courier_id', $id)->where('status', Delivery::DELIVERED)->where('delivered_at', '>=', $from);
+        $cancelled = Delivery::where('courier_id', $id)->where('status', Delivery::CANCELLED)->where('cancellation_fee', '>', 0)->where('cancelled_at', '>=', $from);
+        $history = Delivery::with('pickupZone', 'dropoffZone')->where('courier_id', $id)->whereIn('status', [Delivery::DELIVERED, Delivery::CANCELLED])
+            ->where('updated_at', '>=', $from)->latest('updated_at')->limit(50)->get()
+            ->map(fn ($d) => [
+                'code' => $d->code, 'status' => $d->status,
+                'route' => "{$d->pickupZone->name} → {$d->dropoffZone->name}",
+                'amount' => $d->status === Delivery::DELIVERED ? $d->price : $d->cancellation_fee,
+                'at' => $d->delivered_at ?? $d->cancelled_at,
+            ]);
+
+        $courses = (int) (clone $delivered)->sum('price');
+        $fees = (int) (clone $cancelled)->sum('cancellation_fee');
+
+        return response()->json(['data' => [
+            'period' => $period, 'total' => $courses + $fees, 'deliveries' => (clone $delivered)->count(),
+            'courses_amount' => $courses, 'bonus' => 0, 'cancellation_fees' => $fees, 'history' => $history,
+        ]]);
+    }
+
+    public function location(Request $request): JsonResponse
+    {
+        $data = $request->validate(['lat' => ['required', 'numeric', 'between:-90,90'], 'lng' => ['required', 'numeric', 'between:-180,180']]);
+        $delivery = $this->service->updateLocation($request->user(), (float) $data['lat'], (float) $data['lng']);
+
+        return response()->json(['ok' => true, 'tracking' => (bool) $delivery]);
+    }
+
     public function accept(Request $request, Delivery $delivery): DeliveryResource
     {
         return new DeliveryResource($this->service->accept($request->user(), $delivery->id)->load('pickupZone', 'dropoffZone', 'client'));

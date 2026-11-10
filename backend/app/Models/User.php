@@ -48,6 +48,21 @@ class User extends Authenticatable
         return $this->hasOne(MerchantApplication::class);
     }
 
+    public function shop(): HasOne
+    {
+        return $this->hasOne(Shop::class, 'merchant_id');
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class, 'merchant_id');
+    }
+
+    public function activeSubscription(): ?Subscription
+    {
+        return $this->subscriptions()->where('status', 'active')->where('ends_at', '>', now())->latest('ends_at')->first();
+    }
+
     public function zone(): BelongsTo
     {
         return $this->belongsTo(Zone::class);

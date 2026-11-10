@@ -59,6 +59,8 @@ class AuthController extends Controller
             'zone_id' => ['required', 'exists:zones,id'],
             'address' => ['nullable', 'string', 'max:255'],
             'university' => ['required', 'string', 'max:150'],
+            'student_number' => ['required', 'string', 'max:40'],
+            'study_level' => ['required', 'string', 'max:30'],
             'vehicle_type' => ['required', Rule::in(['moto', 'voiture'])],
             'plate_number' => ['required', 'string', 'max:20'],
         ]);
@@ -70,6 +72,8 @@ class AuthController extends Controller
                 'vehicle_type' => $data['vehicle_type'],
                 'plate_number' => $data['plate_number'],
                 'university' => $data['university'],
+                'student_number' => $data['student_number'],
+                'study_level' => $data['study_level'],
                 'current_zone_id' => $data['zone_id'],
             ]);
 
