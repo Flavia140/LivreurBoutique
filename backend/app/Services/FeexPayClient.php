@@ -17,6 +17,9 @@ class FeexPayClient
     /** Lance une demande de paiement ; renvoie la référence FeexPay. */
     public function requestToPay(int $amount, string $phone, string $network, string $fullName, ?string $email = null): array
     {
+        if (config('yako.demo')) {
+            return ['reference' => 'DEMO-'.bin2hex(random_bytes(6)), 'status' => 'PENDING'];
+        }
         $response = Http::asForm()->timeout(20)
             ->post($this->url('/api/transactions/requesttopay/integration'), [
                 'phoneNumber' => $this->localNumber($phone),
@@ -40,6 +43,9 @@ class FeexPayClient
     /** Statut normalisé : SUCCESSFUL, FAILED ou PENDING. */
     public function status(string $reference): array
     {
+        if (config('yako.demo') && str_starts_with($reference, 'DEMO-')) {
+            return ['status' => 'SUCCESSFUL', 'amount' => null, 'raw' => ['demo' => true]];
+        }
         $data = Http::timeout(20)
             ->get($this->url('/api/transactions/getrequesttopay/integration/'.rawurlencode($reference)))
             ->json() ?? [];
