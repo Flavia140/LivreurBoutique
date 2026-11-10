@@ -5,5 +5,6 @@ import type { User } from './api';
 export function homeFor(user: User): Href {
   if (user.role === 'courier') return user.courier?.verified ? '/courier' : '/courier/documents';
   if (user.role === 'client') return '/client';
+  if (user.role === 'merchant') return '/merchant';
   return '/home';
 }
