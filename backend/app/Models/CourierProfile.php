@@ -11,7 +11,7 @@ class CourierProfile extends Model
     public const REQUIRED_DOCUMENTS = ['student_card', 'id_card', 'license', 'registration', 'insurance', 'vehicle_photo', 'profile_photo'];
 
     protected $fillable = [
-        'user_id', 'vehicle_type', 'plate_number', 'university', 'validation_status', 'rejection_reason',
+        'user_id', 'vehicle_type', 'plate_number', 'university', 'student_number', 'study_level', 'validation_status', 'rejection_reason',
         'verified_at', 'available', 'current_zone_id', 'rating_avg', 'rating_count',
     ];
 

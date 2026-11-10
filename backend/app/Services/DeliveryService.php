@@ -7,6 +7,7 @@ use App\Models\CourierProfile;
 use App\Models\Delivery;
 use App\Models\Payment;
 use App\Models\Rating;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -49,13 +50,47 @@ class DeliveryService
             if ($delivery->status !== Delivery::AWAITING_PAYMENT) {
                 return;
             }
-            $delivery->update(['status' => Delivery::PENDING, 'paid_at' => now()]);
-
-            $this->push->send($delivery->client, 'Paiement reçu', "Commande {$delivery->code} confirmée.", ['delivery_id' => $delivery->id]);
-            if ($this->hours->isOpen()) {
-                $this->notifyCouriers($delivery);
-            }
+            $this->start($delivery);
         });
+    }
+
+    /** Paiement à la livraison : accepté sous le plafond, si le client n'a pas d'annulations abusives. */
+    public function payCash(User $client, Delivery $delivery): Delivery
+    {
+        if ($delivery->status !== Delivery::AWAITING_PAYMENT) {
+            throw new BusinessRuleException('Cette commande est déjà payée ou annulée.', 409, 'not_payable');
+        }
+        $limit = Setting::cashLimit();
+        if ($delivery->total > $limit) {
+            throw new BusinessRuleException("Le paiement en espèces est limité à {$limit} FCFA. Payez par Mobile Money.", 422, 'cash_limit');
+        }
+        if ($client->abusive_cancellations >= 3) {
+            throw new BusinessRuleException("Le paiement en espèces n'est plus disponible sur votre compte. Payez par Mobile Money.", 403, 'cash_blocked');
+        }
+
+        DB::transaction(function () use ($delivery) {
+            $delivery = Delivery::lockForUpdate()->find($delivery->id);
+            $delivery->update(['payment_method' => 'cash']);
+            $this->start($delivery);
+        });
+
+        return $delivery->fresh();
+    }
+
+    /** Commande payée (ou en espèces) : la boutique confirme d'abord, sinon la course part aux livreurs. */
+    private function start(Delivery $delivery): void
+    {
+        $delivery->update(['paid_at' => $delivery->payment_method === 'cash' ? null : now()]);
+        if ($delivery->order_id) {
+            app(OrderService::class)->onPaid($delivery);
+
+            return;
+        }
+        $delivery->update(['status' => Delivery::PENDING]);
+        $this->push->send($delivery->client, 'Commande confirmée', "Commande {$delivery->code} confirmée.", ['delivery_id' => $delivery->id]);
+        if ($this->hours->isOpen()) {
+            $this->notifyCouriers($delivery);
+        }
     }
 
     /** Envoie la course aux livreurs disponibles de la zone de prise en charge. */
@@ -109,6 +144,7 @@ class DeliveryService
         $this->ensureOpen();
         $this->ensureOwnMission($courier, $delivery, Delivery::ACCEPTED);
         $delivery->update(['status' => Delivery::IN_PROGRESS, 'picked_up_at' => now()]);
+        app(OrderService::class)->syncFromDelivery($delivery);
         $this->push->send($delivery->client, 'Colis récupéré', "Votre colis {$delivery->code} est en route.", ['delivery_id' => $delivery->id]);
 
         return $delivery;
@@ -122,8 +158,12 @@ class DeliveryService
         }
 
         DB::transaction(function () use ($delivery) {
-            $delivery->update(['status' => Delivery::DELIVERED, 'delivered_at' => now()]);
+            $delivery->update([
+                'status' => Delivery::DELIVERED, 'delivered_at' => now(),
+                'cash_collected_at' => $delivery->payment_method === 'cash' ? now() : null,
+            ]);
             $delivery->payments()->where('status', 'held')->update(['status' => 'released']);
+            app(OrderService::class)->syncFromDelivery($delivery);
         });
         $this->push->send($delivery->client, 'Colis livré', "Commande {$delivery->code} livrée. Notez votre livreur.", ['delivery_id' => $delivery->id]);
 
@@ -132,7 +172,7 @@ class DeliveryService
 
     public function cancel(User $client, Delivery $delivery): Delivery
     {
-        if (! in_array($delivery->status, [Delivery::AWAITING_PAYMENT, Delivery::PENDING, Delivery::ACCEPTED], true)) {
+        if (! in_array($delivery->status, [Delivery::AWAITING_PAYMENT, Delivery::AWAITING_MERCHANT, Delivery::PENDING, Delivery::ACCEPTED], true)) {
             throw new BusinessRuleException('Le colis est déjà en route, la commande ne peut plus être annulée.', 409, 'not_cancellable');
         }
 
@@ -145,11 +185,21 @@ class DeliveryService
             if ($fee > 0) {
                 $client->increment('abusive_cancellations');
             }
+            app(OrderService::class)->syncFromDelivery($delivery);
         });
 
         if ($delivery->courier) {
             $this->push->send($delivery->courier, 'Course annulée', "Le client a annulé la course {$delivery->code}.", ['delivery_id' => $delivery->id]);
         }
+
+        return $delivery;
+    }
+
+    /** Position du livreur pendant la course, pour le suivi sur carte. */
+    public function updateLocation(User $courier, float $lat, float $lng): ?Delivery
+    {
+        $delivery = Delivery::where('courier_id', $courier->id)->whereIn('status', [Delivery::ACCEPTED, Delivery::IN_PROGRESS])->first();
+        $delivery?->update(['courier_lat' => $lat, 'courier_lng' => $lng, 'location_at' => now()]);
 
         return $delivery;
     }

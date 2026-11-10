@@ -7,6 +7,9 @@ return [
         'end' => env('YAKO_SERVICE_END', '21:00'),
     ],
 
+    // Paiement à la livraison : accepté sous ce montant (FCFA). Modifiable dans l'admin (table settings).
+    'cash_limit' => (int) env('YAKO_CASH_LIMIT', 20000),
+
     'cancellation_fee' => (int) env('YAKO_CANCELLATION_FEE', 300), // FCFA, quand le livreur est déjà en route
 
     'otp' => [
@@ -27,6 +30,13 @@ return [
         'shop_id' => env('FEEXPAY_SHOP_ID'),
         'token' => env('FEEXPAY_TOKEN'),
         'mode' => env('FEEXPAY_MODE', 'SANDBOX'),
+    ],
+
+    // Abonnements commerçants (FCFA)
+    'plans' => [
+        'monthly' => ['label' => 'Mensuel', 'amount' => 9900, 'months' => 1],
+        'quarterly' => ['label' => 'Trimestriel', 'amount' => 24900, 'months' => 3],
+        'annual' => ['label' => 'Annuel', 'amount' => 89900, 'months' => 12],
     ],
 
     // Suspension automatique : note moyenne < 3 sur les 10 dernières livraisons

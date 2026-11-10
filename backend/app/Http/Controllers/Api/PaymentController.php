@@ -8,6 +8,7 @@ use App\Models\Delivery;
 use App\Models\Payment;
 use App\Services\DeliveryService;
 use App\Services\FeexPayClient;
+use App\Services\SubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -15,7 +16,7 @@ use Illuminate\Validation\Rule;
 
 class PaymentController extends Controller
 {
-    public function __construct(private FeexPayClient $feexpay, private DeliveryService $deliveries) {}
+    public function __construct(private FeexPayClient $feexpay, private DeliveryService $deliveries, private SubscriptionService $subscriptions) {}
 
     /** Le client lance le paiement Mobile Money ; il valide ensuite sur son téléphone. */
     public function pay(Request $request, Delivery $delivery): JsonResponse
@@ -78,12 +79,14 @@ class PaymentController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    private function reconcile(Payment $payment): void
+    public function reconcile(Payment $payment): void
     {
         $status = $this->feexpay->status($payment->reference);
 
         if ($status['status'] === 'SUCCESSFUL' && ($status['amount'] === null || $status['amount'] >= $payment->amount)) {
-            $this->deliveries->markPaid($payment, $status['raw']);
+            $payment->subscription_id
+                ? $this->subscriptions->activate($payment, $status['raw'])
+                : $this->deliveries->markPaid($payment, $status['raw']);
         } elseif ($status['status'] === 'FAILED') {
             $payment->update(['status' => 'failed', 'raw' => $status['raw']]);
         }
