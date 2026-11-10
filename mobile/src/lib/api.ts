@@ -17,6 +17,7 @@ export type User = {
   email: string | null;
   role: Role;
   status: 'active' | 'suspended';
+  address?: string | null;
   zone?: { id: number; name: string; city: string } | null;
   courier?: {
     validation_status: 'pending' | 'approved' | 'rejected';

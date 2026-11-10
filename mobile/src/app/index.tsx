@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/lib/auth';
+import { homeFor } from '@/lib/routes';
 import { colors } from '@/theme';
 
 /** Écran de démarrage (maquette 1), puis redirection selon l'état du compte. */
@@ -13,7 +14,7 @@ export default function Splash() {
   useEffect(() => {
     if (!ready) return;
     const t = setTimeout(() => {
-      if (user) router.replace(user.role === 'courier' && !user.courier?.verified ? '/courier/documents' : '/home');
+      if (user) router.replace(homeFor(user));
       else router.replace(onboarded ? '/login' : '/onboarding');
     }, 1200);
     return () => clearTimeout(t);
