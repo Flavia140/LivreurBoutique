@@ -7,6 +7,9 @@ return [
         'end' => env('YAKO_SERVICE_END', '21:00'),
     ],
 
+    // Paiement à la livraison : accepté sous ce montant (FCFA). Modifiable dans l'admin (table settings).
+    'cash_limit' => (int) env('YAKO_CASH_LIMIT', 20000),
+
     'cancellation_fee' => (int) env('YAKO_CANCELLATION_FEE', 300), // FCFA, quand le livreur est déjà en route
 
     'otp' => [

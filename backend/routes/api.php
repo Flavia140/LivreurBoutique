@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\MerchantController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ZoneController;
+use App\Models\Setting;
+use App\Services\FeexPayClient;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -23,6 +25,7 @@ Route::prefix('v1')->group(function () {
     Route::get('zones', [ZoneController::class, 'index']);
     Route::get('tariffs/quote', [ZoneController::class, 'quote']);
     Route::get('service-hours', [ZoneController::class, 'serviceHours']);
+    Route::get('payment-options', fn () => response()->json(['data' => ['cash_limit' => Setting::cashLimit(), 'networks' => FeexPayClient::NETWORKS]]));
 
     Route::get('cities', [CatalogController::class, 'cities']);
     Route::get('shops', [CatalogController::class, 'shops']);
@@ -45,6 +48,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('role:client')->group(function () {
             Route::post('deliveries', [DeliveryController::class, 'store']);
             Route::post('deliveries/{delivery}/pay', [PaymentController::class, 'pay']);
+            Route::post('deliveries/{delivery}/pay-cash', [DeliveryController::class, 'payCash']);
             Route::get('deliveries/{delivery}/payment', [PaymentController::class, 'status']);
             Route::post('deliveries/{delivery}/cancel', [DeliveryController::class, 'cancel']);
             Route::post('deliveries/{delivery}/rate', [DeliveryController::class, 'rate']);

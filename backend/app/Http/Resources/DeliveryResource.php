@@ -22,6 +22,9 @@ class DeliveryResource extends JsonResource
             'price' => $this->price,
             'commission' => $this->commission,
             'total' => $this->total,
+            'payment_method' => $this->payment_method,
+            // En espèces, le livreur encaisse le total à la remise.
+            'cash_to_collect' => $this->payment_method === 'cash' ? $this->total : 0,
             'cancellation_fee' => $this->cancellation_fee,
             // Le code de remise n'est visible que du client, qui le transmet au destinataire.
             'confirmation_code' => $this->when($isClient, fn () => $this->confirmation_code),

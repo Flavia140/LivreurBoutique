@@ -7,6 +7,7 @@ use App\Models\Delivery;
 use App\Models\MerchantApplication;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\Shop;
 use App\Models\Tariff;
 use App\Models\User;
@@ -161,5 +162,40 @@ class ShopFlowTest extends TestCase
         MerchantApplication::create(['user_id' => $m->id, 'business_name' => 'X', 'category' => 'mode', 'zone_id' => $this->shopZone->id, 'address' => 'Y']);
         $this->actingAs($m)->postJson('/api/v1/merchant/subscriptions', ['plan' => 'monthly', 'network' => 'MTN', 'phone' => '+2290197000000'])
             ->assertStatus(403)->assertJsonPath('code', 'merchant_not_approved');
+    }
+
+    public function test_cash_on_delivery_under_limit_and_courier_owes_the_rest(): void
+    {
+        [$m, $shop, $rice] = $this->liveShopWithRice();
+        $client = User::factory()->create();
+        $courier = User::factory()->courier()->create();
+        CourierProfile::create(['user_id' => $courier->id, 'vehicle_type' => 'moto', 'validation_status' => 'approved', 'available' => true, 'current_zone_id' => $this->shopZone->id]);
+        $order = $this->actingAs($client)->postJson('/api/v1/orders', [
+            'shop_id' => $shop->id, 'items' => [['product_id' => $rice->id, 'quantity' => 1]],
+            'dropoff_zone_id' => $this->clientZone->id, 'dropoff_address' => 'Rue 12',
+        ])->json('data');
+        $id = $order['delivery']['id'];
+
+        $this->actingAs($client)->postJson("/api/v1/deliveries/{$id}/pay-cash")->assertOk()
+            ->assertJsonPath('data.status', 'awaiting_merchant')->assertJsonPath('data.cash_to_collect', 3200);
+        $this->actingAs($m)->postJson("/api/v1/merchant/orders/{$order['id']}/confirm")->assertOk();
+        $this->actingAs($courier)->postJson("/api/v1/courier/missions/{$id}/accept")->assertOk();
+        $this->actingAs($courier)->postJson("/api/v1/courier/missions/{$id}/pickup")->assertOk();
+        $this->actingAs($courier)->postJson("/api/v1/courier/missions/{$id}/deliver", ['code' => Delivery::find($id)->confirmation_code])->assertOk();
+
+        $this->actingAs($courier)->getJson('/api/v1/courier/earnings')->assertJsonPath('data.total', 600)->assertJsonPath('data.cash_to_remit', 2600);
+    }
+
+    public function test_cash_refused_above_limit(): void
+    {
+        [, $shop, $rice] = $this->liveShopWithRice();
+        Setting::put('cash_limit', 5000);
+        $client = User::factory()->create();
+        $order = $this->actingAs($client)->postJson('/api/v1/orders', [
+            'shop_id' => $shop->id, 'items' => [['product_id' => $rice->id, 'quantity' => 2]],
+            'dropoff_zone_id' => $this->clientZone->id, 'dropoff_address' => 'Rue 12',
+        ])->json('data');
+        $this->actingAs($client)->postJson("/api/v1/deliveries/{$order['delivery']['id']}/pay-cash")->assertStatus(422)->assertJsonPath('code', 'cash_limit');
+        $this->getJson('/api/v1/payment-options')->assertJsonPath('data.cash_limit', 5000);
     }
 }

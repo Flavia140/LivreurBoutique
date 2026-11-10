@@ -56,6 +56,13 @@ class DeliveryController extends Controller
         return new DeliveryResource($this->service->cancel($request->user(), $delivery)->load('pickupZone', 'dropoffZone', 'courier.courierProfile'));
     }
 
+    public function payCash(Request $request, Delivery $delivery): DeliveryResource
+    {
+        abort_unless($delivery->client_id === $request->user()->id, 403);
+
+        return new DeliveryResource($this->service->payCash($request->user(), $delivery)->load('pickupZone', 'dropoffZone'));
+    }
+
     public function rate(Request $request, Delivery $delivery)
     {
         abort_unless($delivery->client_id === $request->user()->id, 403);

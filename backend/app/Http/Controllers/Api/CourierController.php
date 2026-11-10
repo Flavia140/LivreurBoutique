@@ -130,7 +130,12 @@ class CourierController extends Controller
         $courses = (int) (clone $delivered)->sum('price');
         $fees = (int) (clone $cancelled)->sum('cancellation_fee');
 
+        // Espèces encaissées et pas encore reversées : tout sauf le prix de la course, qui revient au livreur.
+        $cashToRemit = (int) Delivery::where('courier_id', $id)->where('payment_method', 'cash')->whereNotNull('cash_collected_at')
+            ->whereNull('cash_remitted_at')->selectRaw('coalesce(sum(total - price), 0) as owed')->value('owed');
+
         return response()->json(['data' => [
+            'cash_to_remit' => $cashToRemit,
             'period' => $period, 'total' => $courses + $fees, 'deliveries' => (clone $delivered)->count(),
             'courses_amount' => $courses, 'bonus' => 0, 'cancellation_fees' => $fees, 'history' => $history,
         ]]);

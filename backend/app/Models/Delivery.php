@@ -28,7 +28,7 @@ class Delivery extends Model
     protected $fillable = [
         'code', 'order_id', 'goods_amount', 'courier_lat', 'courier_lng', 'location_at', 'client_id', 'courier_id', 'pickup_zone_id', 'pickup_address', 'pickup_contact_phone',
         'dropoff_zone_id', 'dropoff_address', 'recipient_name', 'recipient_phone', 'parcel_type', 'notes',
-        'price', 'commission', 'total', 'status', 'confirmation_code', 'cancellation_fee',
+        'price', 'commission', 'total', 'payment_method', 'cash_collected_at', 'cash_remitted_at', 'status', 'confirmation_code', 'cancellation_fee',
         'paid_at', 'accepted_at', 'picked_up_at', 'delivered_at', 'cancelled_at',
     ];
 
