@@ -23,6 +23,7 @@ export default function SendParcel() {
   const [recipient, setRecipient] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [type, setType] = useState<Parcel | null>(null);
+  const [notes, setNotes] = useState('');
   const [quote, setQuote] = useState<number | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,7 @@ export default function SendParcel() {
     try {
       const d = (await api<{ data: Delivery }>('/deliveries', { method: 'POST', body: {
         pickup_zone_id: from!.id, pickup_address: pickup, dropoff_zone_id: to!.id, dropoff_address: dropoff,
-        recipient_name: recipient || undefined, recipient_phone: normalizeBeninPhone(recipientPhone), parcel_type: type,
+        recipient_name: recipient || undefined, recipient_phone: normalizeBeninPhone(recipientPhone), parcel_type: type, notes: notes.trim() || undefined,
       } })).data;
       router.push({ pathname: '/checkout/payment', params: { deliveryId: String(d.id), total: String(d.total) } });
     } catch (e) {
@@ -59,6 +60,7 @@ export default function SendParcel() {
       <Choice label="Type de colis" value={type} onChange={setType} options={[
         { value: 'document', label: 'Document' }, { value: 'food', label: 'Nourriture' }, { value: 'clothes', label: 'Vêtements' }, { value: 'other', label: 'Autre' },
       ]} />
+      <Input label="Description du colis (facultatif)" value={notes} onChangeText={setNotes} maxLength={500} multiline style={{ height: 70, textAlignVertical: 'top', paddingTop: 12 }} placeholder="Ex. enveloppe A4, fragile, à remettre en main propre" />
       {quote !== null ? <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 16 }}>Prix fixe : {fcfa(quote)}</Text> : null}
       {quoteError ? <Text style={{ color: colors.danger, marginBottom: 16 }}>{quoteError}</Text> : null}
       <Button title="Continuer vers le paiement" loading={loading} disabled={!quote || !pickup || !dropoff || !type || recipientPhone.replace(/\D/g, '').length < 8} onPress={submit} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button } from '@/components/Button';
@@ -14,7 +14,9 @@ const STEPS: { key: string; label: string; done: (d: Delivery) => boolean }[] = 
   { key: 'paid', label: 'Commande validée', done: (d) => d.status !== 'awaiting_payment' },
   { key: 'prep', label: 'Préparation en cours', done: (d) => ['pending', 'accepted', 'in_progress', 'delivered'].includes(d.status) },
   { key: 'courier', label: 'Livreur étudiant trouvé', done: (d) => ['accepted', 'in_progress', 'delivered'].includes(d.status) },
+  { key: 'at_pickup', label: 'Livreur au point de retrait', done: (d) => !!d.arrived_pickup_at || ['in_progress', 'delivered'].includes(d.status) },
   { key: 'road', label: 'En cours de livraison', done: (d) => ['in_progress', 'delivered'].includes(d.status) },
+  { key: 'arrived', label: 'Livreur arrivé chez vous', done: (d) => !!d.arrived_dropoff_at || d.status === 'delivered' },
   { key: 'done', label: 'Livrée', done: (d) => d.status === 'delivered' },
 ];
 
@@ -24,6 +26,8 @@ export default function Track() {
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
   const [score, setScore] = useState(0);
+  const [comment, setComment] = useState('');
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -53,19 +57,38 @@ export default function Track() {
     } },
   ]);
 
-  const rate = async (s: number) => {
-    setScore(s);
+  const rate = async () => {
+    setSending(true);
     try {
-      await api(`/deliveries/${id}/rate`, { method: 'POST', body: { score: s } });
-      if (order) await api(`/orders/${order.id}/rate`, { method: 'POST', body: { score: s } });
+      const body = { score, comment: comment.trim() || undefined };
+      await api(`/deliveries/${id}/rate`, { method: 'POST', body });
+      if (order) await api(`/orders/${order.id}/rate`, { method: 'POST', body });
+      setDelivery({ ...delivery, rated: true, rating: { score, comment: comment.trim() || null } });
       Alert.alert('Merci !', 'Votre avis aide à garder un service de qualité.');
     } catch (e) { Alert.alert('Erreur', errorMessage(e)); }
+    finally { setSending(false); }
   };
+
+  const deliveredAt = delivery.delivered_at ? new Date(delivery.delivered_at) : null;
+  const when = deliveredAt ? `${deliveredAt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} à ${deliveredAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : '';
+  const shareProof = () => Share.share({
+    message: `Preuve de livraison YAKO\nLivraison #${delivery.code}\n${delivery.pickup.zone?.name} → ${delivery.dropoff.zone?.name}\nLivrée le ${when}${delivery.courier ? ` par ${delivery.courier.first_name}` : ''}\nConfirmée par code de remise. Montant : ${fcfa(delivery.total)}`,
+  }).catch(() => undefined);
 
   return (
     <Screen title={finished ? 'Commande' : 'Commande en cours'}>
       <Text style={styles.code}>Commande #{delivery.code}</Text>
       <Text style={styles.status}>{order?.status === 'rejected' ? 'Refusée par la boutique' : DELIVERY_STATUS[delivery.status]}</Text>
+
+      {delivery.status === 'in_progress' && delivery.arrived_dropoff_at ? (
+        <View style={styles.arrived}>
+          <Ionicons name="bicycle" size={28} color="#fff" />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Votre livreur est arrivé !</Text>
+            <Text style={{ color: '#fff' }}>Donnez-lui le code ci-dessous pour recevoir votre colis.</Text>
+          </View>
+        </View>
+      ) : null}
 
       {delivery.confirmation_code && !finished ? (
         <View style={styles.codeBox}>
@@ -112,10 +135,29 @@ export default function Track() {
 
       {delivery.status === 'delivered' && !delivery.rated ? (
         <View style={{ marginTop: 24, alignItems: 'center' }}>
-          <Text style={{ fontWeight: '600', marginBottom: 8 }}>Notez votre livraison</Text>
+          <Text style={{ fontWeight: '600', marginBottom: 8 }}>Évaluez votre livraison</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            {[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => rate(n)}><Ionicons name={n <= score ? 'star' : 'star-outline'} size={32} color="#F5A623" /></Pressable>)}
+            {[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setScore(n)} accessibilityLabel={`${n} étoile${n > 1 ? 's' : ''}`}><Ionicons name={n <= score ? 'star' : 'star-outline'} size={32} color="#F5A623" /></Pressable>)}
           </View>
+          <TextInput value={comment} onChangeText={setComment} placeholder="Votre avis nous aide à mieux vous servir…" multiline maxLength={500}
+            placeholderTextColor="#9AA0A6" style={styles.comment} />
+          <Button title="Envoyer mon avis" onPress={rate} loading={sending} disabled={!score} style={{ alignSelf: 'stretch', marginTop: 10 }} />
+        </View>
+      ) : null}
+
+      {delivery.status === 'delivered' ? (
+        <View style={styles.proof}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontWeight: '700', fontSize: 15 }}>Preuve de livraison</Text>
+            <View style={styles.badge}><Text style={{ color: colors.success, fontSize: 12, fontWeight: '600' }}>Livrée</Text></View>
+          </View>
+          <ProofRow icon="cube-outline" label="Colis" value={order ? `${order.items.length} article(s) de ${order.shop.name}` : PARCEL[delivery.parcel_type] ?? delivery.parcel_type} />
+          <ProofRow icon="navigate-outline" label="Trajet" value={`${delivery.pickup.zone?.name} → ${delivery.dropoff.zone?.name}`} />
+          <ProofRow icon="time-outline" label="Livraison" value={when} />
+          {delivery.courier ? <ProofRow icon="person-outline" label="Livreur" value={`${delivery.courier.first_name}${delivery.courier.verified ? ' (vérifié)' : ''}`} /> : null}
+          <ProofRow icon="shield-checkmark-outline" label="Confirmation" value="Code de remise validé" />
+          {delivery.rating ? <ProofRow icon="star-outline" label="Votre note" value={`${'★'.repeat(delivery.rating.score)}${delivery.rating.comment ? ` · « ${delivery.rating.comment} »` : ''}`} /> : null}
+          <Button title="Partager la preuve" variant="outline" onPress={shareProof} style={{ marginTop: 12 }} />
         </View>
       ) : null}
 
@@ -125,7 +167,23 @@ export default function Track() {
   );
 }
 
+const PARCEL: Record<string, string> = { document: 'Documents', food: 'Repas', clothes: 'Vêtements', other: 'Colis' };
+
+function ProofRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+      <Ionicons name={icon} size={18} color={colors.primary} />
+      <Text style={{ color: colors.textMuted, width: 90 }}>{label}</Text>
+      <Text style={{ flex: 1, color: colors.text }}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  arrived: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.primary, borderRadius: radius.md, padding: 14, marginTop: 16 },
+  comment: { alignSelf: 'stretch', borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 12, minHeight: 70, marginTop: 12, fontSize: 14, textAlignVertical: 'top' },
+  proof: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 14, marginTop: 24 },
+  badge: { backgroundColor: '#E8F5E9', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3 },
   code: { fontSize: 15, fontWeight: '700', color: colors.text },
   status: { fontSize: 13, color: colors.primary, marginTop: 4 },
   codeBox: { backgroundColor: colors.primarySoft, borderRadius: radius.md, padding: 14, marginTop: 16, alignItems: 'center' },

@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { fcfa } from '@/lib/format';
 import { useApi } from '@/lib/useApi';
 import { colors, radius } from '@/theme';
 
 type Earnings = {
+  daily: { date: string; amount: number }[];
   total: number; deliveries: number; bonus: number; cancellation_fees: number; cash_to_remit: number;
   history: { code: string; status: string; route: string; amount: number; at: string }[];
 };
@@ -14,7 +15,8 @@ const PERIODS = [{ key: 'day', label: 'Jour' }, { key: 'week', label: 'Semaine' 
 
 /** Mes gains (maquette livreur 4). */
 export default function EarningsScreen() {
-  const [period, setPeriod] = useState<'day' | 'week' | 'month'>('day');
+  const params = useLocalSearchParams<{ period?: 'day' | 'week' | 'month' }>();
+  const [period, setPeriod] = useState<'day' | 'week' | 'month'>(params.period ?? 'day');
   const { data, reload } = useApi<{ data: Earnings }>(`/courier/earnings?period=${period}`);
   useFocusEffect(useCallback(() => { reload(); }, [reload]));
   const e = data?.data;
@@ -36,6 +38,7 @@ export default function EarningsScreen() {
           <Mini label="Bonus" value={fcfa(e?.bonus ?? 0)} />
           <Mini label="Annulations" value={fcfa(e?.cancellation_fees ?? 0)} />
         </View>
+        {e?.daily ? <WeekChart days={e.daily} /> : null}
         {e?.cash_to_remit ? (
           <View style={styles.cash}><Text style={{ color: colors.text }}>Espèces à reverser à YAKO : <Text style={{ fontWeight: '700' }}>{fcfa(e.cash_to_remit)}</Text></Text></View>
         ) : null}
@@ -55,6 +58,29 @@ export default function EarningsScreen() {
   );
 }
 
+const DAY = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+/** Gains des 7 derniers jours en barres (aujourd'hui en orange vif). */
+function WeekChart({ days }: { days: { date: string; amount: number }[] }) {
+  const max = Math.max(...days.map((d) => d.amount), 1);
+  return (
+    <View style={styles.chart} accessibilityLabel={`Gains des 7 derniers jours : ${days.map((d) => fcfa(d.amount)).join(', ')}`}>
+      <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 10 }}>7 derniers jours</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 110, gap: 8 }}>
+        {days.map((d, i) => (
+          <View key={d.date} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+            {d.amount ? <Text style={{ fontSize: 9, color: colors.textMuted, marginBottom: 2 }}>{(d.amount / 1000).toFixed(1)}k</Text> : null}
+            <View style={{ width: '100%', height: Math.max(4, (d.amount / max) * 90), borderRadius: 4, backgroundColor: i === days.length - 1 ? colors.primary : '#FFC9A3' }} />
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+        {days.map((d) => <Text key={d.date} style={{ flex: 1, textAlign: 'center', fontSize: 11, color: colors.textMuted }}>{DAY[new Date(`${d.date}T12:00:00`).getDay()]}</Text>)}
+      </View>
+    </View>
+  );
+}
+
 function Mini({ label, value }: { label: string; value: string }) {
   return <View style={{ flex: 1 }}><Text style={{ fontSize: 11, color: colors.textMuted }}>{label}</Text><Text style={{ fontWeight: '700', marginTop: 4 }}>{value}</Text></View>;
 }
@@ -66,6 +92,7 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   big: { fontSize: 32, fontWeight: '800', color: colors.text },
   row: { flexDirection: 'row', gap: 12, marginTop: 16, paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  chart: { marginTop: 16, paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   cash: { backgroundColor: colors.primarySoft, borderRadius: radius.md, padding: 12, marginTop: 16 },
   section: { fontSize: 16, fontWeight: '700', marginTop: 20, marginBottom: 8 },
   item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },

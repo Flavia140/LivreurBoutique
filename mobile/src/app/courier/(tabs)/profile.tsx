@@ -24,7 +24,8 @@ export default function CourierProfile() {
       <Field label="Plaque" value={c?.plate_number} />
       <Field label="Permis de conduire" value={c?.verified ? 'Vérifié' : 'En attente'} />
       <Text style={{ marginTop: 12, color: colors.text }}>★ {c?.rating_avg?.toFixed(1) ?? '–'} ({c?.rating_count ?? 0} évaluations)</Text>
-      <Button title="Se déconnecter" variant="outline" style={{ marginTop: 24 }} onPress={async () => { await signOut(); router.replace('/login'); }} />
+      <Button title="Mon historique de courses" variant="outline" style={{ marginTop: 24 }} onPress={() => router.push('/courier/earnings?period=month')} />
+      <Button title="Se déconnecter" variant="ghost" style={{ marginTop: 8 }} onPress={async () => { await signOut(); router.replace('/login'); }} />
     </Screen>
   );
 }

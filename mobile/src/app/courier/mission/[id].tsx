@@ -7,7 +7,7 @@ import { Input } from '@/components/Input';
 import { Screen } from '@/components/Screen';
 import { api, errorMessage } from '@/lib/api';
 import { useShareLocation } from '@/lib/courierLocation';
-import { DELIVERY_STATUS, fcfa } from '@/lib/format';
+import { DELIVERY_STATUS, PARCEL_TYPE, fcfa } from '@/lib/format';
 import type { Delivery } from '@/lib/types';
 import { colors, radius } from '@/theme';
 
@@ -42,12 +42,15 @@ export default function Mission() {
     <Screen title={`Course #${d.code}`} subtitle={DELIVERY_STATUS[d.status]}>
       <Stop icon="storefront-outline" title="Récupérer" zone={d.pickup.zone?.name} address={d.pickup.address} phone={d.pickup.contact_phone} />
       <Stop icon="home-outline" title="Livrer" zone={d.dropoff.zone?.name} address={d.dropoff.address} phone={d.dropoff.recipient_phone} name={d.dropoff.recipient_name ?? client?.first_name} />
+      <Text style={{ color: colors.text, marginBottom: 4 }}>Colis : {d.order_id ? 'Commande boutique' : PARCEL_TYPE[d.parcel_type] ?? d.parcel_type}{d.notes ? ` · ${d.notes}` : ''}</Text>
       <View style={styles.money}>
         <Text>Votre gain : <Text style={{ fontWeight: '700', color: colors.success }}>{fcfa(d.price)}</Text></Text>
         {d.payment_method === 'cash' ? <Text style={{ marginTop: 4 }}>Espèces à encaisser : <Text style={{ fontWeight: '700' }}>{fcfa(d.total)}</Text></Text> : <Text style={{ marginTop: 4, color: colors.textMuted }}>Déjà payée par Mobile Money</Text>}
       </View>
 
+      {d.status === 'accepted' && !d.arrived_pickup_at ? <Button title="Je suis au point de retrait" variant="outline" loading={busy} onPress={() => act('arrived')} style={{ marginBottom: 10 }} /> : null}
       {d.status === 'accepted' ? <Button title="J'ai récupéré le colis" loading={busy} onPress={() => act('pickup')} /> : null}
+      {d.status === 'in_progress' && !d.arrived_dropoff_at ? <Button title="Je suis arrivé chez le destinataire" variant="outline" loading={busy} onPress={() => act('arrived')} style={{ marginBottom: 10 }} /> : null}
       {d.status === 'in_progress' ? (
         <>
           <Input label="Code de remise donné par le destinataire" keyboardType="number-pad" maxLength={4} value={code} onChangeText={setCode} />

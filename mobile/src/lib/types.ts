@@ -42,6 +42,7 @@ export type Delivery = {
   pickup: { zone: { id: number; name: string; city: string } | null; address: string; contact_phone: string | null };
   dropoff: { zone: { id: number; name: string; city: string } | null; address: string; recipient_name: string | null; recipient_phone: string };
   parcel_type: string;
+  notes?: string | null;
   price: number;
   commission: number;
   total: number;
@@ -53,9 +54,12 @@ export type Delivery = {
   courier_position?: { lat: number; lng: number; at: string };
   order_id: number | null;
   rated: boolean;
+  rating?: { score: number; comment: string | null } | null;
   created_at: string;
   accepted_at: string | null;
+  arrived_pickup_at?: string | null;
   picked_up_at: string | null;
+  arrived_dropoff_at?: string | null;
   delivered_at: string | null;
 };
 
