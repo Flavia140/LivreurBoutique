@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { api, errorMessage, type User } from './api';
 import { useAuth } from './auth';
 import { normalizeBeninPhone } from './phone';
+import { homeFor } from './routes';
 
 /** Champs communs aux trois inscriptions et envoi au serveur. */
 export function useRegister(path: 'client' | 'courier' | 'merchant') {
@@ -25,7 +26,7 @@ export function useRegister(path: 'client' | 'courier' | 'merchant') {
         res = await api(`/auth/register/${path}`, { method: 'POST', body: payload });
       }
       await signIn(res.token, res.user);
-      router.replace(path === 'courier' ? '/courier/documents' : '/home');
+      router.replace(homeFor(res.user));
     } catch (e) {
       Alert.alert('Inscription impossible', errorMessage(e));
     } finally {

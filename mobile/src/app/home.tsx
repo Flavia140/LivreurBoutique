@@ -1,5 +1,5 @@
 import { Text } from 'react-native';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { useAuth } from '@/lib/auth';
@@ -8,6 +8,7 @@ import { colors } from '@/theme';
 /** Accueil provisoire : remplacé par les écrans client, livreur et commerçant dans la suite. */
 export default function Home() {
   const { user, signOut } = useAuth();
+  if (user?.role === 'client') return <Redirect href="/client" />;
   const pendingMerchant = user?.role === 'merchant' && user.merchant?.status !== 'approved';
 
   return (

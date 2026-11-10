@@ -8,6 +8,7 @@ import { Logo } from '@/components/Logo';
 import { Screen } from '@/components/Screen';
 import { api, errorMessage, type User } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { homeFor } from '@/lib/routes';
 import { normalizeBeninPhone } from '@/lib/phone';
 import { colors, radius } from '@/theme';
 
@@ -25,7 +26,7 @@ export default function Login() {
     try {
       const res = await api<{ token: string; user: User }>('/auth/login', { method: 'POST', body: { phone: normalizeBeninPhone(phone), password } });
       await signIn(res.token, res.user);
-      router.replace(res.user.role === 'courier' && !res.user.courier?.verified ? '/courier/documents' : '/home');
+      router.replace(homeFor(res.user));
     } catch (e) {
       setError(errorMessage(e));
     } finally {
