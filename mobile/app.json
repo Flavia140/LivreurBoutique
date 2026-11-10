@@ -33,6 +33,12 @@
           "photosPermission": "YAKO a besoin d'accéder à vos photos pour vos documents et votre profil.",
           "cameraPermission": "YAKO a besoin de l'appareil photo pour photographier vos documents."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "YAKO partage votre position avec le client pendant une livraison."
+        }
       ]
     ],
     "scheme": "yako",

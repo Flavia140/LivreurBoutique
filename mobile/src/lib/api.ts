@@ -23,6 +23,12 @@ export type User = {
     validation_status: 'pending' | 'approved' | 'rejected';
     verified: boolean;
     vehicle_type: 'moto' | 'voiture';
+    plate_number?: string | null;
+    university?: string | null;
+    student_number?: string | null;
+    study_level?: string | null;
+    rating_avg?: number | null;
+    rating_count?: number;
     available: boolean;
     missing_documents: string[];
   } | null;
