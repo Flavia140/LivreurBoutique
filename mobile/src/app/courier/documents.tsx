@@ -63,7 +63,7 @@ export default function CourierDocuments() {
         );
       })}
       <View style={{ height: 16 }} />
-      {user?.courier?.verified ? <Button title="Accéder à mes missions" onPress={() => router.replace('/home')} /> : <Button title="Actualiser" variant="outline" onPress={refresh} />}
+      {user?.courier?.verified ? <Button title="Accéder à mes missions" onPress={() => router.replace('/courier')} /> : <Button title="Actualiser" variant="outline" onPress={refresh} />}
       <Button title="Se déconnecter" variant="ghost" onPress={async () => { await signOut(); router.replace('/login'); }} style={{ marginTop: 8 }} />
     </Screen>
   );

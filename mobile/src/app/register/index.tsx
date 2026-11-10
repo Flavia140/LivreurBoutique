@@ -6,7 +6,7 @@ import { colors, radius } from '@/theme';
 
 const PROFILES: { href: Href; icon: keyof typeof Ionicons.glyphMap; title: string; text: string }[] = [
   { href: '/register/client', icon: 'bag-handle-outline', title: 'Client', text: 'Je commande dans les boutiques ou je fais livrer un colis.' },
-  { href: '/register/courier', icon: 'bicycle-outline', title: 'Livreur étudiant', text: 'Je livre à moto ou en voiture et je gagne un revenu.' },
+  { href: '/register/courier-intro', icon: 'bicycle-outline', title: 'Livreur étudiant', text: 'Je livre à moto ou en voiture et je gagne un revenu.' },
   { href: '/register/merchant', icon: 'storefront-outline', title: 'Commerçant', text: "J'ouvre ma boutique en ligne sur YAKO." },
 ];
 

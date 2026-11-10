@@ -9,6 +9,7 @@ import { colors } from '@/theme';
 export default function Home() {
   const { user, signOut } = useAuth();
   if (user?.role === 'client') return <Redirect href="/client" />;
+  if (user?.role === 'courier') return <Redirect href={user.courier?.verified ? '/courier' : '/courier/documents'} />;
   const pendingMerchant = user?.role === 'merchant' && user.merchant?.status !== 'approved';
 
   return (
