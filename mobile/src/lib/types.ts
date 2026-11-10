@@ -42,6 +42,7 @@ export type Delivery = {
   pickup: { zone: { id: number; name: string; city: string } | null; address: string; contact_phone: string | null };
   dropoff: { zone: { id: number; name: string; city: string } | null; address: string; recipient_name: string | null; recipient_phone: string };
   parcel_type: string;
+  notes?: string | null;
   price: number;
   commission: number;
   total: number;
