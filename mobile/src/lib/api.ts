@@ -3,7 +3,8 @@ import { Platform } from 'react-native';
 import { storage } from './storage';
 
 // 10.0.2.2 = la machine hôte vue depuis l'émulateur Android. À remplacer par l'URL de production.
-const configured = (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl ?? 'http://10.0.2.2:8000/api/v1';
+// EXPO_PUBLIC_API_URL permet de pointer un téléphone vers le PC de test (ex. http://192.168.1.20:8000/api/v1).
+const configured = process.env.EXPO_PUBLIC_API_URL || ((Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl ?? 'http://10.0.2.2:8000/api/v1');
 const API_URL: string = Platform.OS === 'web' ? configured.replace('10.0.2.2', 'localhost') : configured;
 const TOKEN_KEY = 'yako.token';
 
