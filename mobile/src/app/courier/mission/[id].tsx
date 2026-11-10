@@ -47,7 +47,9 @@ export default function Mission() {
         {d.payment_method === 'cash' ? <Text style={{ marginTop: 4 }}>Espèces à encaisser : <Text style={{ fontWeight: '700' }}>{fcfa(d.total)}</Text></Text> : <Text style={{ marginTop: 4, color: colors.textMuted }}>Déjà payée par Mobile Money</Text>}
       </View>
 
+      {d.status === 'accepted' && !d.arrived_pickup_at ? <Button title="Je suis au point de retrait" variant="outline" loading={busy} onPress={() => act('arrived')} style={{ marginBottom: 10 }} /> : null}
       {d.status === 'accepted' ? <Button title="J'ai récupéré le colis" loading={busy} onPress={() => act('pickup')} /> : null}
+      {d.status === 'in_progress' && !d.arrived_dropoff_at ? <Button title="Je suis arrivé chez le destinataire" variant="outline" loading={busy} onPress={() => act('arrived')} style={{ marginBottom: 10 }} /> : null}
       {d.status === 'in_progress' ? (
         <>
           <Input label="Code de remise donné par le destinataire" keyboardType="number-pad" maxLength={4} value={code} onChangeText={setCode} />

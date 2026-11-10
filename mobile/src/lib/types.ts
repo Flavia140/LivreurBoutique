@@ -53,9 +53,12 @@ export type Delivery = {
   courier_position?: { lat: number; lng: number; at: string };
   order_id: number | null;
   rated: boolean;
+  rating?: { score: number; comment: string | null } | null;
   created_at: string;
   accepted_at: string | null;
+  arrived_pickup_at?: string | null;
   picked_up_at: string | null;
+  arrived_dropoff_at?: string | null;
   delivered_at: string | null;
 };
 
