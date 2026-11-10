@@ -71,7 +71,8 @@ class ShopFlowTest extends TestCase
         ], ['Accept' => 'application/json'])->assertCreated()->assertJsonPath('data.template', 'alimentation')->assertJsonPath('data.status', 'draft');
 
         $this->actingAs($m)->postJson('/api/v1/merchant/categories', ['name' => 'Fruits & Légumes'])->assertCreated();
-        $this->actingAs($m)->postJson('/api/v1/merchant/products', ['name' => 'Bananes', 'price' => 1000, 'stock' => 20])->assertCreated();
+        $pid = $this->actingAs($m)->postJson('/api/v1/merchant/products', ['name' => 'Bananes', 'price' => 1000, 'stock' => 20])->assertCreated()->json('data.id');
+        $this->actingAs($m)->getJson("/api/v1/merchant/products/{$pid}")->assertOk()->assertJsonPath('data.name', 'Bananes');
 
         $this->actingAs($m)->postJson('/api/v1/merchant/shop/submit')->assertStatus(402)->assertJsonPath('code', 'no_subscription');
 

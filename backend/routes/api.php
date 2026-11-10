@@ -69,6 +69,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('categories/{category}', [MerchantController::class, 'deleteCategory']);
             Route::get('products', [MerchantController::class, 'products']);
             Route::post('products', [MerchantController::class, 'storeProduct']);
+            Route::get('products/{product}', [MerchantController::class, 'showProduct']);
             Route::post('products/{product}', [MerchantController::class, 'updateProduct']);
             Route::delete('products/{product}', [MerchantController::class, 'deleteProduct']);
             Route::get('orders', [MerchantController::class, 'orders']);

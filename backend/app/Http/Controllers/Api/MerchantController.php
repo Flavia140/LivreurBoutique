@@ -170,6 +170,13 @@ class MerchantController extends Controller
         return new ProductResource($shop->products()->create($data));
     }
 
+    public function showProduct(Request $request, Product $product): ProductResource
+    {
+        abort_unless($product->shop_id === $this->shop($request)->id, 404);
+
+        return new ProductResource($product);
+    }
+
     public function updateProduct(Request $request, Product $product): ProductResource
     {
         $shop = $this->shop($request);
