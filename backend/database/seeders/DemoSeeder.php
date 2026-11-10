@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\CourierDocument;
+use App\Models\CourierProfile;
 use App\Models\MerchantApplication;
 use App\Models\Shop;
 use App\Models\User;
@@ -39,5 +41,34 @@ class DemoSeeder extends Seeder
                 $shop->products()->firstOrCreate(['name' => $pname], ['price' => $price, 'stock' => 50, 'product_category_id' => $catModel->id]);
             }
         }
+
+        $this->testAccounts($centre);
+    }
+
+    /** Comptes de test prêts à l'emploi (mot de passe yako1234). */
+    private function testAccounts(Zone $centre): void
+    {
+        $akpakpa = Zone::where('name', 'Akpakpa')->first() ?? $centre;
+        User::firstOrCreate(['phone' => '+2290197000001'], [
+            'first_name' => 'Awa', 'last_name' => 'Test', 'password' => 'yako1234', 'role' => 'client', 'zone_id' => $akpakpa->id, 'phone_verified_at' => now(),
+        ]);
+
+        $courier = User::firstOrCreate(['phone' => '+2290196000001'], [
+            'first_name' => 'Patrick', 'last_name' => 'Test', 'password' => 'yako1234', 'role' => 'courier', 'zone_id' => $centre->id, 'phone_verified_at' => now(),
+        ]);
+        $profile = CourierProfile::firstOrCreate(['user_id' => $courier->id], [
+            'vehicle_type' => 'moto', 'plate_number' => 'AB 1234 RB', 'university' => 'UAC', 'student_number' => '20231234', 'study_level' => 'Licence 3',
+            'validation_status' => 'approved', 'verified_at' => now(), 'current_zone_id' => $centre->id,
+        ]);
+        foreach (CourierProfile::REQUIRED_DOCUMENTS as $type) {
+            CourierDocument::firstOrCreate(['courier_profile_id' => $profile->id, 'type' => $type], ['path' => "demo/{$type}.jpg", 'status' => 'approved']);
+        }
+
+        $merchant = User::firstOrCreate(['phone' => '+2290195000001'], [
+            'first_name' => 'Afi', 'last_name' => 'Test', 'password' => 'yako1234', 'role' => 'merchant', 'zone_id' => $centre->id, 'phone_verified_at' => now(),
+        ]);
+        MerchantApplication::firstOrCreate(['user_id' => $merchant->id], [
+            'business_name' => 'Chez Afi', 'category' => 'alimentaire', 'zone_id' => $centre->id, 'address' => 'Marché Dantokpa', 'status' => 'approved',
+        ]);
     }
 }

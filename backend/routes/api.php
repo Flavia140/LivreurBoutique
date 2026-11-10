@@ -87,6 +87,7 @@ Route::prefix('v1')->group(function () {
             Route::get('missions/current', [CourierController::class, 'current']);
             Route::post('missions/{delivery}/accept', [CourierController::class, 'accept']);
             Route::post('missions/{delivery}/pickup', [CourierController::class, 'pickup']);
+            Route::post('missions/{delivery}/arrived', [CourierController::class, 'arrived']);
             Route::post('missions/{delivery}/deliver', [CourierController::class, 'deliver']);
         });
     });

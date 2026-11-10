@@ -150,6 +150,27 @@ class DeliveryService
         return $delivery;
     }
 
+    /** Le livreur signale son arrivée : au point de retrait (course acceptée) ou chez le destinataire (colis en route). */
+    public function arrived(User $courier, Delivery $delivery): Delivery
+    {
+        if ($delivery->courier_id !== $courier->id) {
+            throw new BusinessRuleException('Cette course ne vous est pas attribuée.', 403);
+        }
+        if ($delivery->status === Delivery::ACCEPTED) {
+            $delivery->arrived_pickup_at ??= now();
+            $delivery->save();
+            $this->push->send($delivery->client, 'Livreur au point de retrait', "Le livreur récupère votre colis {$delivery->code}.", ['delivery_id' => $delivery->id]);
+        } elseif ($delivery->status === Delivery::IN_PROGRESS) {
+            $delivery->arrived_dropoff_at ??= now();
+            $delivery->save();
+            $this->push->send($delivery->client, 'Votre livreur est arrivé !', 'Donnez-lui votre code de livraison pour recevoir le colis.', ['delivery_id' => $delivery->id]);
+        } else {
+            throw new BusinessRuleException('Action impossible à cette étape de la livraison.', 409, 'bad_status');
+        }
+
+        return $delivery;
+    }
+
     public function deliver(User $courier, Delivery $delivery, string $code): Delivery
     {
         $this->ensureOwnMission($courier, $delivery, Delivery::IN_PROGRESS);

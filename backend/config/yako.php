@@ -1,6 +1,10 @@
 <?php
 
 return [
+    // Mode démonstration (tests sans FeexPay ni SMS) : paiements validés d'office, code SMS 123456.
+    // Ignoré si APP_ENV=production.
+    'demo' => env('YAKO_DEMO', false) && env('APP_ENV') !== 'production',
+
     // Plage horaire de prise en charge et de livraison (heure du Bénin)
     'service_hours' => [
         'start' => env('YAKO_SERVICE_START', '07:00'),

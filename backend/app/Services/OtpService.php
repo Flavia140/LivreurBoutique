@@ -19,7 +19,9 @@ class OtpService
         }
 
         $length = config('yako.otp.length');
-        $code = str_pad((string) random_int(0, 10 ** $length - 1), $length, '0', STR_PAD_LEFT);
+        $code = config('yako.demo')
+            ? substr('123456789', 0, $length)
+            : str_pad((string) random_int(0, 10 ** $length - 1), $length, '0', STR_PAD_LEFT);
 
         OtpCode::where('phone', $phone)->where('purpose', $purpose)->whereNull('used_at')->update(['used_at' => now()]);
         OtpCode::create([
