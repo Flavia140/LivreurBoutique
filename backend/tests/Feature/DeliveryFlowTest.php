@@ -68,7 +68,12 @@ class DeliveryFlowTest extends TestCase
 
         $this->actingAs($courier)->getJson('/api/v1/courier/missions')->assertOk()->assertJsonCount(1, 'data');
         $this->actingAs($courier)->postJson("/api/v1/courier/missions/{$delivery->id}/accept")->assertOk()->assertJsonPath('data.status', 'accepted');
+        $this->actingAs($courier)->postJson("/api/v1/courier/missions/{$delivery->id}/arrived")->assertOk()->assertJsonPath('data.arrived_dropoff_at', null);
+        $this->assertNotNull($delivery->fresh()->arrived_pickup_at);
         $this->actingAs($courier)->postJson("/api/v1/courier/missions/{$delivery->id}/pickup")->assertOk();
+        $this->actingAs($courier)->postJson("/api/v1/courier/missions/{$delivery->id}/arrived")->assertOk();
+        $this->actingAs($client)->getJson("/api/v1/deliveries/{$delivery->id}")->assertJsonPath('data.status', 'in_progress');
+        $this->assertNotNull($delivery->fresh()->arrived_dropoff_at);
 
         $wrong = $delivery->confirmation_code === '1000' ? '1001' : '1000';
         $this->actingAs($courier)->postJson("/api/v1/courier/missions/{$delivery->id}/deliver", ['code' => $wrong])->assertStatus(422);
@@ -76,8 +81,11 @@ class DeliveryFlowTest extends TestCase
             ->assertOk()->assertJsonPath('data.status', 'delivered');
 
         $this->assertSame('released', $delivery->payments()->first()->status);
-        $this->actingAs($client)->postJson("/api/v1/deliveries/{$delivery->id}/rate", ['score' => 5])->assertCreated();
+        $this->actingAs($client)->postJson("/api/v1/deliveries/{$delivery->id}/rate", ['score' => 5, 'comment' => 'Très rapide'])->assertCreated();
         $this->assertEquals(5.0, $courier->courierProfile->fresh()->rating_avg);
+        $this->actingAs($client)->getJson("/api/v1/deliveries/{$delivery->id}")->assertJsonPath('data.rating.comment', 'Très rapide');
+        $this->actingAs($courier)->getJson('/api/v1/courier/earnings?period=week')->assertJsonCount(7, 'data.daily')
+            ->assertJsonPath('data.daily.6.amount', $delivery->price);
     }
 
     public function test_webhook_twice_does_not_double_process(): void

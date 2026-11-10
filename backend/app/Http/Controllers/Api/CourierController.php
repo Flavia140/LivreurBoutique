@@ -134,7 +134,14 @@ class CourierController extends Controller
         $cashToRemit = (int) Delivery::where('courier_id', $id)->where('payment_method', 'cash')->whereNotNull('cash_collected_at')
             ->whereNull('cash_remitted_at')->selectRaw('coalesce(sum(total - price), 0) as owed')->value('owed');
 
+        // Gains des 7 derniers jours, pour le graphique.
+        $days = collect(range(6, 0))->map(fn ($i) => now()->subDays($i)->startOfDay());
+        $byDay = Delivery::where('courier_id', $id)->where('status', Delivery::DELIVERED)->where('delivered_at', '>=', $days->first())
+            ->get(['delivered_at', 'price'])->groupBy(fn ($d) => $d->delivered_at->toDateString())->map->sum('price');
+        $daily = $days->map(fn ($d) => ['date' => $d->toDateString(), 'amount' => (int) ($byDay[$d->toDateString()] ?? 0)])->values();
+
         return response()->json(['data' => [
+            'daily' => $daily,
             'cash_to_remit' => $cashToRemit,
             'period' => $period, 'total' => $courses + $fees, 'deliveries' => (clone $delivered)->count(),
             'courses_amount' => $courses, 'bonus' => 0, 'cancellation_fees' => $fees, 'history' => $history,
@@ -157,6 +164,11 @@ class CourierController extends Controller
     public function pickup(Request $request, Delivery $delivery): DeliveryResource
     {
         return new DeliveryResource($this->service->pickup($request->user(), $delivery)->load('pickupZone', 'dropoffZone', 'client'));
+    }
+
+    public function arrived(Request $request, Delivery $delivery): DeliveryResource
+    {
+        return new DeliveryResource($this->service->arrived($request->user(), $delivery)->load('pickupZone', 'dropoffZone', 'client'));
     }
 
     public function deliver(Request $request, Delivery $delivery): DeliveryResource

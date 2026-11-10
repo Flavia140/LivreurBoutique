@@ -38,6 +38,7 @@ class DeliveryResource extends JsonResource
             ] : null,
             'client' => $this->when(! $isClient, fn () => ['first_name' => $this->client->first_name, 'phone' => $this->client->phone]),
             'rated' => $this->rating()->exists(),
+            'rating' => $this->when($this->status === 'delivered', fn () => $this->rating?->only('score', 'comment')),
             'order_id' => $this->order_id,
             'goods_amount' => $this->goods_amount,
             'courier_position' => $this->when(
@@ -46,7 +47,9 @@ class DeliveryResource extends JsonResource
             ),
             'paid_at' => $this->paid_at,
             'accepted_at' => $this->accepted_at,
+            'arrived_pickup_at' => $this->arrived_pickup_at,
             'picked_up_at' => $this->picked_up_at,
+            'arrived_dropoff_at' => $this->arrived_dropoff_at,
             'delivered_at' => $this->delivered_at,
             'cancelled_at' => $this->cancelled_at,
             'created_at' => $this->created_at,
