@@ -10,7 +10,7 @@ export function Input({ label, secure, error, style, ...rest }: Props) {
   return (
     <View style={styles.wrap}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.field, error ? { borderColor: colors.danger } : null]}>
+      <View style={[styles.field, rest.multiline ? { height: undefined, minHeight: 52, alignItems: 'stretch' } : null, error ? { borderColor: colors.danger } : null]}>
         <TextInput
           placeholderTextColor="#9AA0A6"
           secureTextEntry={secure && hidden}

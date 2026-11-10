@@ -10,7 +10,7 @@ const METHODS: { value: Network; label: string; bg: string; fg: string }[] = [
   { value: 'MOOV', label: 'Moov Money', bg: '#0B5BAA', fg: '#fff' },
 ];
 
-export function PaymentMethods({ value, onChange, cashAllowed, cashLimit }: { value: Method; onChange: (n: Method) => void; cashAllowed?: boolean; cashLimit?: number }) {
+export function PaymentMethods({ value, onChange, cashAllowed, cashLimit, hideCash }: { value: Method; onChange: (n: Method) => void; cashAllowed?: boolean; cashLimit?: number; hideCash?: boolean }) {
   return (
     <View>
       <Text style={styles.title}>Mobile Money</Text>
@@ -21,6 +21,7 @@ export function PaymentMethods({ value, onChange, cashAllowed, cashLimit }: { va
           <Ionicons name={value === m.value ? 'radio-button-on' : 'radio-button-off'} size={20} color={value === m.value ? colors.primary : colors.textMuted} />
         </Pressable>
       ))}
+      {hideCash ? null : <>
       <Text style={[styles.title, { marginTop: 12 }]}>Autre option</Text>
       <Pressable style={[styles.row, value === 'CASH' && styles.active, !cashAllowed && { opacity: 0.5 }]} disabled={!cashAllowed} onPress={() => onChange('CASH')}>
         <View style={[styles.logo, { backgroundColor: '#E8F5E9' }]}><Ionicons name="cash-outline" size={20} color="#1E8E3E" /></View>
@@ -30,6 +31,7 @@ export function PaymentMethods({ value, onChange, cashAllowed, cashLimit }: { va
         </View>
         <Ionicons name={value === 'CASH' ? 'radio-button-on' : 'radio-button-off'} size={20} color={value === 'CASH' ? colors.primary : colors.textMuted} />
       </Pressable>
+      </>}
     </View>
   );
 }
